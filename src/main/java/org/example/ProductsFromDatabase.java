@@ -8,6 +8,7 @@ import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.registry.StandardServiceRegistry;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.criterion.Example;
+import org.hibernate.query.Query;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -30,23 +31,25 @@ public class ProductsFromDatabase {
         }
     }
 
-    public DefaultTableModel getProductsFromDB(){
+    public List<Product> getProductsFromDB(){
         Session session = sessionFactory.openSession();
         session.beginTransaction();
 
         List<Product> result = session.createQuery("from Product", Product.class).list();
+        session.getTransaction().commit();
+        session.close();
+
+        return result;
+    }
+
+    public DefaultTableModel productsFromDBToModel(List<Product> products){
 
         DefaultTableModel defaultTableModel = new DefaultTableModel(tableHeaderValues.toArray(), 0);
-
-        result.forEach( product -> {
+        products.forEach( product -> {
 
             defaultTableModel.addRow(product.toTxtString().replace("null","brak informacji").split(";"));
 
         });
-
-        session.getTransaction().commit();
-        session.close();
-
         return defaultTableModel;
     }
     public void writeProductsToDB(ArrayList<Integer> duplicateRows, JTable table, HashMap<Integer,String> editedRows){
@@ -66,7 +69,9 @@ public class ProductsFromDatabase {
 
         session.getTransaction().commit();
         session.close();
+
     }
+
 
     private ArrayList<Product> getProductsFromTable(ArrayList<Integer> duplicateRows, JTable table, List<Product> dbRows, HashMap<Integer,String> editedRows){
         Integer idFromDB;
@@ -173,5 +178,52 @@ public class ProductsFromDatabase {
                 attr[13],
                 attr[14]
         );
+    }
+
+
+    public List<Product> getProductsFromDBWithCalculatedAspectRatio(double aspectRatio){
+        Session session = sessionFactory.openSession();
+        session.beginTransaction();
+
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("select * from Product ")
+                .append("where CAST("+aspectRatio+" AS DECIMAL(4,2)) = ROUND(" )
+                .append("cast(SUBSTRING_INDEX(resolution, 'x',1) AS UNSIGNED)")
+                .append("/").append("cast(SUBSTRING_INDEX(resolution, 'x',-1) AS UNSIGNED),2);");
+
+        Query query = session.createNativeQuery(stringBuilder.toString(),Product.class);
+
+        List<Product> dbRows = query.getResultList();
+
+        session.getTransaction().commit();
+        session.close();
+
+        return dbRows;
+    }
+
+    public List<Product> getProductsFromDBWithSelectedScreenType(String screenType){
+        Session session = sessionFactory.openSession();
+        session.beginTransaction();
+        Query query = session.createQuery("from Product where screenType =:stype");
+        query.setParameter("stype",screenType);
+
+        List<Product> dbRows = query.getResultList();
+        session.getTransaction().commit();
+        session.close();
+
+        return dbRows;
+    }
+
+    public List<Product> getProductsFromDBWithSelectedManufacturer(String manufacturer){
+        Session session = sessionFactory.openSession();
+        session.beginTransaction();
+        Query query = session.createQuery("from Product where manufacturer =:tmpmanufacturer");
+        query.setParameter("tmpmanufacturer",manufacturer);
+
+        List<Product> dbRows = query.getResultList();
+        session.getTransaction().commit();
+        session.close();
+
+        return dbRows;
     }
 }

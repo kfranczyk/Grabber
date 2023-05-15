@@ -1,6 +1,8 @@
 package org.example;
 
 
+import org.example.SOAP.ProductServiceImpl;
+
 import javax.swing.*;
 import javax.swing.table.*;
 import javax.xml.bind.JAXBException;
@@ -30,7 +32,7 @@ public class GuiScrolled {
 
     GuiScrolled() {
 
-        frame = new JFrame("Integracja systemów - Karol Franczyk");
+        frame = new JFrame("Integracja systemów - aplikacja serwerowa Karol Franczyk");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         topNavPanel = createTopPanel();
@@ -40,6 +42,9 @@ public class GuiScrolled {
         //connect to DB
         productsFromDatabase = new ProductsFromDatabase();
 
+
+        javax.xml.ws.Endpoint.publish("http://localhost:8090/productservice",
+                new ProductServiceImpl(productsFromDatabase));
 
         frame.setSize(1000, 500);
         frame.setMinimumSize(new Dimension(400,400));
@@ -162,7 +167,7 @@ public class GuiScrolled {
                     return;
                 }
 
-                DefaultTableModel defaultTableModel = productsFromDatabase.getProductsFromDB();
+                DefaultTableModel defaultTableModel = productsFromDatabase.productsFromDBToModel(productsFromDatabase.getProductsFromDB());
                 JTable newTable = new JTable( defaultTableModel);
 
                 ArrayList<Integer> duplicatedRowsIndx = getDuplicatesIndx(table,newTable);
@@ -173,6 +178,9 @@ public class GuiScrolled {
                 labelMessage = "Zapisano w bazie " +  uniqueRows + " zmienionych rekordów";
                 frame.getContentPane().remove(topNavPanel);
                 repaintTopUI();
+
+
+                //productsFromDatabase.getProductsFromDBWithScreenType("xd").forEach(System.out::println);
             }
         });
 
@@ -264,7 +272,7 @@ public class GuiScrolled {
 
     }
     private void drawTableOnDBRead(){
-        DefaultTableModel defaultTableModel = productsFromDatabase.getProductsFromDB();
+        DefaultTableModel defaultTableModel = productsFromDatabase.productsFromDBToModel(productsFromDatabase.getProductsFromDB());
         JTable newTable = new JTable( defaultTableModel);
         if (table==null){
             labelMessage += ": znalazłem nowe " + defaultTableModel.getRowCount() + " rekordy";
